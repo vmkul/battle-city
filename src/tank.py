@@ -7,21 +7,23 @@ motor_sound = load_sound("samples/motor.wav")
 motor_sound.set_volume(0.3)
 shot_sound = load_sound("samples/gun_shot.wav")
 
+
 class Tank(pg.sprite.Sprite):
-    def __init__(self, x, y, game):
+    def __init__(self, row, col, game, sprite="sprites/tank.bmp"):
         pg.sprite.Sprite.__init__(self)
-        self.image, self.rect = load_image("sprites/tank.bmp", -1)
-        self.rect.topleft = x + MAP_COORDINATES[0], y + MAP_COORDINATES[1]
+        self.image, self.rect = load_image(sprite, -1)
+        self.rect.topleft = col * 32, row * 32
         self.original = self.image
         self.speed = 0, 0
         self.game = game
         self.direction = "UP"
+        self.is_enemy = isinstance(self, AITank)
 
     def move_right(self):
         self.image = pg.transform.rotate(self.original, -90)
         self.direction = "RIGHT"
         self.speed = 2, 0
-        
+
     def move_left(self):
         self.image = pg.transform.rotate(self.original, 90)
         self.direction = "LEFT"
@@ -42,18 +44,24 @@ class Tank(pg.sprite.Sprite):
         self.speed = 0, 0
 
     def is_colliding(self, newpos):
-        if not self.game.game_map_rect.contains(newpos):
+        enemy_tank_collisions = self.game.get_enemy_tank_collision(newpos)
+        if self.is_enemy:
+            enemy_tank_collisions.remove(self)
+
+        if len(enemy_tank_collisions) > 0:
             return True
 
-        for wall in self.game.wall_sprites:
-            if (wall.does_collide(newpos.inflate(-5, -5))):
+        if self.game.collides_with_map(newpos):
+            return True
+
+        if self.game.get_wall_collision(newpos) is not None:
+            return True
+
+        if self.is_enemy:
+            if self.game.get_player_tank_collision(newpos) is not None:
                 return True
 
-        for tank in self.game.tank_sprites:
-            if tank.rect.colliderect(newpos.inflate(-5, -5)) and tank != self:
-                return True        
-        
-        return False
+        return True if self.game.get_base_collision(newpos) is not None else False
 
     def shoot(self):
         coord = self.rect.center
@@ -61,7 +69,8 @@ class Tank(pg.sprite.Sprite):
             coord = coord[0] + 8, coord[1]
         shot_sound.stop()
         shot_sound.play()
-        self.game.bullet_sprites.add(Bullet(coord, self.direction, self.game, self))
+        self.game.bullet_sprites.add(
+            Bullet(coord, self.direction, self.game, self.is_enemy))
 
     def update(self):
         if self.speed != (0, 0):
@@ -70,9 +79,10 @@ class Tank(pg.sprite.Sprite):
         if not self.is_colliding(newpos):
             self.rect = newpos
 
+
 class AITank(Tank):
     def __init__(self, x, y, game):
-        Tank.__init__(self, x, y, game)
+        Tank.__init__(self, x, y, game, "sprites/enemy_tank.jpg")
         self.is_moving = False
         self.last_shot_time = pg.time.get_ticks()
 
@@ -94,17 +104,16 @@ class AITank(Tank):
 
     def update(self):
         if not self.is_moving:
-            return self.move_to_free_location()
+            self.move_to_free_location()
 
         newpos = self.rect.move(self.speed)
-        
-        if self.is_colliding(newpos):
-            self.is_moving = False
-            return
 
         current_time = pg.time.get_ticks()
         if current_time - self.last_shot_time >= 1000:
             self.shoot()
             self.last_shot_time = current_time
 
-        self.rect = newpos
+        if self.is_colliding(newpos):
+            self.is_moving = False
+        else:
+            self.rect = newpos
