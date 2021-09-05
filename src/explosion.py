@@ -21,7 +21,8 @@ class Explosion(pg.sprite.Sprite):
             self.draw = False
 
         self.frame = self.frame + 1
+        if self.frame == 12:
+            return self.kill()
+
         self.image = self.original.subsurface(
             pg.Rect(32 * self.frame, 0, 32, 32))
-        if self.frame == 11:
-            self.kill()
