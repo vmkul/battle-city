@@ -2,11 +2,12 @@ import os
 import pygame as pg
 from pygame.compat import geterror
 
-pg.mixer.init()
+pg.init()
 
 main_dir = os.path.split(os.path.abspath(__file__))[0]
 data_dir = os.path.join(os.path.dirname(main_dir), "data")
 MAP_COORDINATES = 16, 5
+
 
 def load_image(name, colorkey=None):
     fullname = os.path.join(data_dir, name)
@@ -21,6 +22,7 @@ def load_image(name, colorkey=None):
             colorkey = image.get_at((0, 0))
         image.set_colorkey(colorkey, pg.RLEACCEL)
     return image, image.get_rect()
+
 
 def load_sound(name):
     class NoneSound:
