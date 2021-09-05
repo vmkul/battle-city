@@ -4,12 +4,16 @@ import pygame as pg
 from wall import *
 from tank import *
 from bullet import *
+from explosion import *
 from base import *
 from util import *
 
 random.seed()
-RESTRICTED_TILES = [(12, 5), (12, 6), (12, 7), (11, 5), (11, 6), (11, 7), (10, 6)]
+RESTRICTED_TILES = [(12, 5), (12, 6), (12, 7), (11, 5),
+                    (11, 6), (11, 7), (10, 6)]
 SPAWN_ENEMY_EVENT = pg.USEREVENT
+MAX_ENEMY_COUNT = 4
+
 
 class Game:
     def __init__(self):
@@ -26,7 +30,7 @@ class Game:
         self.game_map = pg.Surface((416, 416))
         self.game_map = self.game_map.convert()
         self.game_map.fill((0, 0, 0))
-        self.game_map_rect = self.game_map.get_rect().move(MAP_COORDINATES[0], MAP_COORDINATES[1])
+        self.game_map_rect = self.game_map.get_rect()
 
         background.blit(self.game_map, MAP_COORDINATES)
         screen.blit(background, (0, 0))
@@ -50,19 +54,49 @@ class Game:
 
                     self.map_coords.append((i, j))
 
-
         for i in range(40):
             coord = random.choice(self.map_coords)
             self.map_coords.remove(coord)
             self.wall_sprites.add(Wall(coord[0], coord[1]))
 
-
         self.player_tank = Tank(10, 6, self)
-        self.tank_sprites = pg.sprite.RenderPlain((self.player_tank))
+        self.player_tank_sprites = pg.sprite.RenderPlain((self.player_tank))
 
-        self.enemy_count = 4
-        for i in range(self.enemy_count):
+        self.enemy_tank_sprites = pg.sprite.RenderPlain()
+        self.explosion_sprites = pg.sprite.RenderPlain()
+
+        self.enemy_count = 10
+        for i in range(MAX_ENEMY_COUNT):
+            self.enemy_count = self.enemy_count - 1
             self.spawn_enemy()
+
+    def get_wall_collision(self, rect):
+        for wall in self.wall_sprites:
+            if wall.rect.colliderect(rect):
+                return wall
+        return None
+
+    def get_enemy_tank_collision(self, rect):
+        res = []
+        for tank in self.enemy_tank_sprites:
+            if tank.rect.colliderect(rect):
+                res.append(tank)
+        return res
+
+    def get_player_tank_collision(self, rect):
+        for tank in self.player_tank_sprites:
+            if tank.rect.colliderect(rect):
+                return tank
+        return None
+
+    def get_base_collision(self, rect):
+        for base in self.base_sprite:
+            if base.rect.colliderect(rect):
+                return base
+        return None
+
+    def collides_with_map(self, rect):
+        return not self.game_map_rect.contains(rect)
 
     def spawn_enemy(self):
         rows = [n for n in range(13)]
@@ -73,26 +107,19 @@ class Game:
 
         for i in rows:
             for j in cols:
-               if (i, j) in RESTRICTED_TILES:
-                   continue
-               test_rect = pg.Rect(j * 32 + MAP_COORDINATES[0], i * 32 + MAP_COORDINATES[1], 32, 32)
+                if (i, j) in RESTRICTED_TILES:
+                    continue
+                test_rect = pg.Rect(
+                    j * 32 + MAP_COORDINATES[0], i * 32 + MAP_COORDINATES[1], 32, 32)
 
-               collides = False
+                if self.get_wall_collision(test_rect) is not None or len(self.get_enemy_tank_collision(test_rect)) > 1 or self.get_player_tank_collision(test_rect) is not None:
+                    continue
 
-                #TODO: Create game class methods for checking collisions
+                return self.enemy_tank_sprites.add(AITank(i, j, self))
 
-               for wall in self.wall_sprites:
-                   if wall.rect.contains(test_rect):
-                       collides = True
+    def create_explosion(self, pos):
+        self.explosion_sprites.add(Explosion(pos[0], pos[1]))
 
-               for tank in self.tank_sprites:
-                   if tank.rect.colliderect(test_rect):
-                       collides = True
-
-               if collides:
-                   continue                
-               return self.tank_sprites.add(AITank(i, j, self))
-                
     def main_loop(self):
         last_shot_time = -1000
         pg.display.flip()
@@ -105,12 +132,9 @@ class Game:
         while going:
             clock.tick(60)
 
-            if len(self.tank_sprites) < 4 and not spawn_pending:
+            if len(self.enemy_tank_sprites) < MAX_ENEMY_COUNT and not spawn_pending:
                 pg.time.set_timer(SPAWN_ENEMY_EVENT, 2000)
                 spawn_pending = True
-
-            if len(self.base_sprite) == 0:
-                exit()
 
             if len(pressed_directions) > 0:
                 last_pressed = pressed_directions[-1]
@@ -141,26 +165,37 @@ class Game:
                         pressed_directions.remove(event.key)
                         if len(pressed_directions) == 0:
                             self.player_tank.stop()
-                
-                elif event.type == SPAWN_ENEMY_EVENT:
-                    pg.time.set_timer(SPAWN_ENEMY_EVENT, 0)
-                    self.spawn_enemy()
-                    spawn_pending = False
 
-            self.tank_sprites.update()
+                elif event.type == SPAWN_ENEMY_EVENT:
+                    if self.enemy_count != 0:
+                        self.enemy_count = self.enemy_count - 1
+                        pg.time.set_timer(SPAWN_ENEMY_EVENT, 0)
+                        self.spawn_enemy()
+                        spawn_pending = False
+
+            self.enemy_tank_sprites.update()
+            self.player_tank_sprites.update()
             self.wall_sprites.update()
             self.bullet_sprites.update()
             self.base_sprite.update()
+            self.explosion_sprites.update()
 
+            self.game_map.fill((0, 0, 0))
+
+            self.wall_sprites.draw(self.game_map)
+            self.bullet_sprites.draw(self.game_map)
+            self.enemy_tank_sprites.draw(self.game_map)
+            self.player_tank_sprites.draw(self.game_map)
+            self.base_sprite.draw(self.game_map)
+            self.explosion_sprites.draw(self.game_map)
+
+            self.background.blit(self.game_map, MAP_COORDINATES)
             self.screen.blit(self.background, (0, 0))
 
-            self.wall_sprites.draw(self.screen)
-            self.bullet_sprites.draw(self.screen)
-            self.tank_sprites.draw(self.screen)
-            self.base_sprite.draw(self.screen)
             pg.display.flip()
 
         pg.quit()
+
 
 if __name__ == "__main__":
     game = Game()
