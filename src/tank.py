@@ -18,6 +18,7 @@ class Tank(pg.sprite.Sprite):
         self.game = game
         self.direction = "UP"
         self.is_enemy = isinstance(self, AITank)
+        self.is_alive = True
 
     def move_right(self):
         self.image = pg.transform.rotate(self.original, -90)
@@ -63,10 +64,16 @@ class Tank(pg.sprite.Sprite):
 
         return True if self.game.get_base_collision(newpos) is not None else False
 
+    def destroy(self):
+        self.is_alive = False
+        self.kill()
+
     def shoot(self):
+        if not self.is_alive:
+            return
         coord = self.rect.center
         if self.direction == "UP" or self.direction == "DOWN":
-            coord = coord[0] + 8, coord[1]
+            coord = coord[0] + 2, coord[1]
         shot_sound.stop()
         shot_sound.play()
         self.game.bullet_sprites.add(
