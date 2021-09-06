@@ -13,6 +13,12 @@ RESTRICTED_TILES = [(12, 5), (12, 6), (12, 7), (11, 5),
                     (11, 6), (11, 7), (10, 6)]
 SPAWN_ENEMY_EVENT = pg.USEREVENT
 MAX_ENEMY_COUNT = 4
+GAME_STATE_ACTIVE = 0
+GAME_STATE_PLAYER_WON = 1
+GAME_STATE_PLAYER_LOST = 2
+
+win_sound = load_sound("samples/win_effect.wav")
+lose_sound = load_sound("samples/lose_effect.wav")
 
 
 class Game:
@@ -36,17 +42,46 @@ class Game:
         screen.blit(background, (0, 0))
 
         self.bullet_sprites = pg.sprite.RenderPlain()
-        self.base_sprite = pg.sprite.RenderPlain(Base())
-        self.wall_sprites = pg.sprite.RenderPlain((
+        self.base_sprite = pg.sprite.RenderPlain()
+        self.wall_sprites = pg.sprite.RenderPlain()
+        self.player_tank_sprites = pg.sprite.RenderPlain()
+        self.enemy_tank_sprites = pg.sprite.RenderPlain()
+        self.explosion_sprites = pg.sprite.RenderPlain()
+
+        self.map_coords = []
+        self.player_tank = Tank(10, 6, self)
+        self.enemy_count = 10
+        self.game_state = GAME_STATE_ACTIVE
+
+        self.game_over_font = pg.font.Font(
+            data_dir + "/fonts/ARCADECLASSIC.TTF", 36)
+        self.game_over_text = self.game_over_font.render(
+            "YOU   LOST!", 1, (0, 255, 0))
+        self.textpos = self.game_over_text.get_rect(
+            center=(self.game_map.get_width() / 2, self.game_map.get_height() / 2))
+
+        self.restart_game()
+
+    def restart_game(self):
+        self.game_state = GAME_STATE_ACTIVE
+
+        self.bullet_sprites.empty()
+        self.base_sprite.empty()
+        self.wall_sprites.empty()
+        self.enemy_tank_sprites.empty()
+        self.explosion_sprites.empty()
+        self.player_tank_sprites.empty()
+
+        self.wall_sprites.add(
             Wall(12, 5),
             Wall(12, 7),
             Wall(11, 5),
             Wall(11, 6),
             Wall(11, 7),
-        ))
+        )
+        self.base_sprite.add(Base())
 
-        self.tile_map = 13 * [13 * [0]]
-        self.map_coords = []
+        self.map_coords.clear()
 
         for i in range(13):
             for j in range(13):
@@ -59,16 +94,13 @@ class Game:
             self.map_coords.remove(coord)
             self.wall_sprites.add(Wall(coord[0], coord[1]))
 
-        self.player_tank = Tank(10, 6, self)
-        self.player_tank_sprites = pg.sprite.RenderPlain((self.player_tank))
-
-        self.enemy_tank_sprites = pg.sprite.RenderPlain()
-        self.explosion_sprites = pg.sprite.RenderPlain()
-
         self.enemy_count = 10
         for i in range(MAX_ENEMY_COUNT):
             self.enemy_count = self.enemy_count - 1
             self.spawn_enemy()
+
+        self.player_tank = Tank(10, 6, self)
+        self.player_tank_sprites.add(self.player_tank)
 
     def get_wall_collision(self, rect):
         for wall in self.wall_sprites:
@@ -120,6 +152,16 @@ class Game:
     def create_explosion(self, pos):
         self.explosion_sprites.add(Explosion(pos[0], pos[1]))
 
+    def print_win(self):
+        self.game_over_text = self.game_over_font.render(
+            "YOU   WON!", 1, (0, 255, 0))
+        self.game_map.blit(self.game_over_text, self.textpos)
+
+    def print_lose(self):
+        self.game_over_text = self.game_over_font.render(
+            "YOU   LOST!", 1, (255, 0, 0))
+        self.game_map.blit(self.game_over_text, self.textpos)
+
     def main_loop(self):
         last_shot_time = -1000
         pg.display.flip()
@@ -131,6 +173,15 @@ class Game:
 
         while going:
             clock.tick(60)
+
+            if self.game_state == GAME_STATE_ACTIVE:
+                if not self.base_sprite.sprites()[0].is_alive or not self.player_tank.is_alive:
+                    lose_sound.play()
+                    self.game_state = GAME_STATE_PLAYER_LOST
+
+                if self.enemy_count == 0 and len(self.enemy_tank_sprites) == 0:
+                    win_sound.play()
+                    self.game_state = GAME_STATE_PLAYER_WON
 
             if len(self.enemy_tank_sprites) < MAX_ENEMY_COUNT and not spawn_pending:
                 pg.time.set_timer(SPAWN_ENEMY_EVENT, 2000)
@@ -152,6 +203,9 @@ class Game:
                     going = False
 
                 elif event.type == pg.KEYDOWN:
+                    if event.key == pg.K_RETURN:
+                        if self.game_state == GAME_STATE_PLAYER_LOST or self.game_state == GAME_STATE_PLAYER_WON:
+                            self.restart_game()
                     if event.key == pg.K_UP or event.key == pg.K_DOWN or event.key == pg.K_RIGHT or event.key == pg.K_LEFT:
                         pressed_directions.append(event.key)
                     if event.key == pg.K_SPACE:
@@ -188,6 +242,11 @@ class Game:
             self.player_tank_sprites.draw(self.game_map)
             self.base_sprite.draw(self.game_map)
             self.explosion_sprites.draw(self.game_map)
+
+            if self.game_state == GAME_STATE_PLAYER_WON:
+                self.print_win()
+            elif self.game_state == GAME_STATE_PLAYER_LOST:
+                self.print_lose()
 
             self.background.blit(self.game_map, MAP_COORDINATES)
             self.screen.blit(self.background, (0, 0))
