@@ -28,7 +28,7 @@ class Bullet(pg.sprite.Sprite):
     def destroy_tank(self, tank):
         explosion_sound.play()
         self.game.create_explosion(tank.rect.topleft)
-        tank.kill()
+        tank.destroy()
         self.kill()
 
     def update(self):
