@@ -1,6 +1,9 @@
 import pygame as pg
 from util import *
 
+explosion_sound = load_sound("samples/explosion.wav")
+explosion_sound.set_volume(0.5)
+
 
 class Explosion(pg.sprite.Sprite):
     def __init__(self, x, y):
@@ -19,6 +22,9 @@ class Explosion(pg.sprite.Sprite):
             return
         else:
             self.draw = False
+
+        if self.frame == 0:
+            explosion_sound.play()
 
         self.frame = self.frame + 1
         if self.frame == 12:

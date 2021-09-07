@@ -2,8 +2,6 @@ import pygame as pg
 from util import *
 from explosion import *
 
-explosion_sound = load_sound("samples/explosion.wav")
-
 
 class Bullet(pg.sprite.Sprite):
     def __init__(self, pos, direction, game, is_enemy):
