@@ -144,7 +144,7 @@ class Game:
                 test_rect = pg.Rect(
                     j * 32 + MAP_COORDINATES[0], i * 32 + MAP_COORDINATES[1], 32, 32)
 
-                if self.get_wall_collision(test_rect) is not None or len(self.get_enemy_tank_collision(test_rect)) > 1 or self.get_player_tank_collision(test_rect) is not None:
+                if self.get_wall_collision(test_rect) is not None or len(self.get_enemy_tank_collision(test_rect)) > 0 or self.get_player_tank_collision(test_rect) is not None:
                     continue
 
                 return self.enemy_tank_sprites.add(AITank(i, j, self))
