@@ -4,8 +4,9 @@ from util import *
 import random
 
 motor_sound = load_sound("samples/motor.wav")
-motor_sound.set_volume(0.3)
 shot_sound = load_sound("samples/gun_shot.wav")
+motor_sound.set_volume(0.5)
+shot_sound.set_volume(0.5)
 
 
 class Tank(pg.sprite.Sprite):
@@ -19,6 +20,7 @@ class Tank(pg.sprite.Sprite):
         self.direction = "UP"
         self.is_enemy = isinstance(self, AITank)
         self.is_alive = True
+        self.is_playing_motor_sound = False
 
     def move_right(self):
         self.image = pg.transform.rotate(self.original, -90)
@@ -41,6 +43,7 @@ class Tank(pg.sprite.Sprite):
         self.speed = 0, 2
 
     def stop(self):
+        self.is_playing_motor_sound = False
         motor_sound.stop()
         self.speed = 0, 0
 
@@ -80,8 +83,9 @@ class Tank(pg.sprite.Sprite):
             Bullet(coord, self.direction, self.game, self.is_enemy))
 
     def update(self):
-        if self.speed != (0, 0):
-            motor_sound.play()
+        if self.speed != (0, 0) and not self.is_playing_motor_sound:
+            self.is_playing_motor_sound = True
+            motor_sound.play(loops=-1)
         newpos = self.rect.move(self.speed)
         if not self.is_colliding(newpos):
             self.rect = newpos
