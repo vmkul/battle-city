@@ -2,7 +2,7 @@ import pygame as pg
 from util import *
 
 explosion_sound = load_sound("samples/explosion.wav")
-explosion_sound.set_volume(0.5)
+explosion_sound.set_volume(0.3)
 
 
 class Explosion(pg.sprite.Sprite):
