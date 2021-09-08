@@ -6,6 +6,7 @@ from tank import *
 from bullet import *
 from explosion import *
 from base import *
+from score import *
 from util import *
 
 random.seed()
@@ -47,6 +48,7 @@ class Game:
         self.player_tank_sprites = pg.sprite.RenderPlain()
         self.enemy_tank_sprites = pg.sprite.RenderPlain()
         self.explosion_sprites = pg.sprite.RenderPlain()
+        self.enemy_counter_sprite = pg.sprite.RenderPlain(EnemyCounter(10))
 
         self.map_coords = []
         self.player_tank = Tank(10, 6, self)
@@ -233,6 +235,9 @@ class Game:
             self.bullet_sprites.update()
             self.base_sprite.update()
             self.explosion_sprites.update()
+            self.enemy_counter_sprite.sprites()[0].set_count(
+                self.enemy_count + len(self.enemy_tank_sprites))
+            self.enemy_counter_sprite.update()
 
             self.game_map.fill((0, 0, 0))
 
@@ -242,6 +247,7 @@ class Game:
             self.player_tank_sprites.draw(self.game_map)
             self.base_sprite.draw(self.game_map)
             self.explosion_sprites.draw(self.game_map)
+            self.enemy_counter_sprite.draw(self.background)
 
             if self.game_state == GAME_STATE_PLAYER_WON:
                 self.print_win()
