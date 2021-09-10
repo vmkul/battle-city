@@ -16,10 +16,11 @@ random.seed()
 RESTRICTED_TILES = [(12, 5), (12, 6), (12, 7), (11, 5),
                     (11, 6), (11, 7), (10, 6)]
 SPAWN_ENEMY_EVENT = pg.USEREVENT
-MAX_ENEMY_COUNT = 4
+MAX_ENEMY_COUNT = 1
 GAME_STATE_ACTIVE = 0
 GAME_STATE_PLAYER_WON = 1
 GAME_STATE_PLAYER_LOST = 2
+SEARCH_ALGORITHMS = [BFS, DFS]
 
 win_sound = load_sound("samples/win_effect.wav")
 lose_sound = load_sound("samples/lose_effect.wav")
@@ -188,8 +189,18 @@ class Game:
             for square in path:
                 self.path_symbol_sprites.add(PathSymbol(square[0], square[1]))
 
+    def switch_search_algorithm(self):
+        index = SEARCH_ALGORITHMS.index(self.search_algorithm)
+        index = index + 1 if index < len(SEARCH_ALGORITHMS) - 1 else 0
+        self.search_algorithm = SEARCH_ALGORITHMS[index]
+
     def create_explosion(self, pos):
         self.explosion_sprites.add(Explosion(pos[0], pos[1]))
+
+    def print_search_algorithm(self):
+        font = pg.font.Font(data_dir + "/fonts/ARCADECLASSIC.TTF", 26)
+        text = font.render(self.search_algorithm.__name__, 1, (34, 34, 34))
+        self.background.blit(text, (480 - text.get_rect().width, 0))
 
     def print_win(self):
         self.game_over_text = self.game_over_font.render(
@@ -244,6 +255,8 @@ class Game:
                     going = False
 
                 elif event.type == pg.KEYDOWN:
+                    if event.key == pg.K_z:
+                        self.switch_search_algorithm()
                     if event.key == pg.K_RETURN:
                         if self.game_state == GAME_STATE_PLAYER_LOST or self.game_state == GAME_STATE_PLAYER_WON:
                             self.restart_game()
@@ -279,6 +292,7 @@ class Game:
             self.enemy_counter_sprite.update()
             self.path_symbol_sprites.update()
 
+            self.background.fill((128, 128, 128))
             self.game_map.fill((0, 0, 0))
 
             self.path_symbol_sprites.draw(self.game_map)
@@ -289,6 +303,7 @@ class Game:
             self.base_sprite.draw(self.game_map)
             self.explosion_sprites.draw(self.game_map)
             self.enemy_counter_sprite.draw(self.background)
+            self.print_search_algorithm()
 
             if self.game_state == GAME_STATE_PLAYER_WON:
                 self.print_win()
