@@ -1,5 +1,6 @@
 import os
 import random
+import math
 import pygame as pg
 from wall import *
 from tank import *
@@ -7,6 +8,8 @@ from bullet import *
 from explosion import *
 from base import *
 from score import *
+from search import *
+from path_symbol import *
 from util import *
 
 random.seed()
@@ -49,11 +52,13 @@ class Game:
         self.enemy_tank_sprites = pg.sprite.RenderPlain()
         self.explosion_sprites = pg.sprite.RenderPlain()
         self.enemy_counter_sprite = pg.sprite.RenderPlain(EnemyCounter(10))
+        self.path_symbol_sprites = pg.sprite.RenderPlain()
 
         self.map_coords = []
         self.player_tank = Tank(10, 6, self)
         self.enemy_count = 10
         self.game_state = GAME_STATE_ACTIVE
+        self.search_algorithm = BFS
 
         self.game_over_font = pg.font.Font(
             data_dir + "/fonts/ARCADECLASSIC.TTF", 36)
@@ -151,6 +156,38 @@ class Game:
 
                 return self.enemy_tank_sprites.add(AITank(i, j, self))
 
+    def get_square_matrix(self):
+        res = [[0 for x in range(13)] for y in range(13)]
+
+        for i in range(13):
+            for j in range(13):
+                test_rect = pg.Rect(
+                    j * 32 + MAP_COORDINATES[0], i * 32 + MAP_COORDINATES[1], 16, 16)
+                if self.get_wall_collision(test_rect) is None and len(self.get_enemy_tank_collision(test_rect)) >= 0:
+                    res[i][j] = 1
+
+        return res
+
+    def draw_paths_to_enemies(self):
+        self.path_symbol_sprites.empty()
+        m = self.get_square_matrix()
+        paths = []
+
+        player_center = self.player_tank.rect.center
+        player_square = (math.floor(
+            player_center[1] / 32), math.floor(player_center[0] / 32))
+
+        for tank in self.enemy_tank_sprites:
+            center = tank.rect.center
+            i = math.floor(center[1] / 32)
+            j = math.floor(center[0] / 32)
+
+            paths.append(self.search_algorithm(m, player_square, (i, j)))
+
+        for path in paths:
+            for square in path:
+                self.path_symbol_sprites.add(PathSymbol(square[0], square[1]))
+
     def create_explosion(self, pos):
         self.explosion_sprites.add(Explosion(pos[0], pos[1]))
 
@@ -175,6 +212,8 @@ class Game:
 
         while going:
             clock.tick(60)
+
+            self.draw_paths_to_enemies()
 
             if self.game_state == GAME_STATE_ACTIVE:
                 if not self.base_sprite.sprites()[0].is_alive or not self.player_tank.is_alive:
@@ -238,9 +277,11 @@ class Game:
             self.enemy_counter_sprite.sprites()[0].set_count(
                 self.enemy_count + len(self.enemy_tank_sprites))
             self.enemy_counter_sprite.update()
+            self.path_symbol_sprites.update()
 
             self.game_map.fill((0, 0, 0))
 
+            self.path_symbol_sprites.draw(self.game_map)
             self.wall_sprites.draw(self.game_map)
             self.bullet_sprites.draw(self.game_map)
             self.enemy_tank_sprites.draw(self.game_map)
