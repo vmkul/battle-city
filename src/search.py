@@ -1,3 +1,6 @@
+import math
+
+
 class GameMap():
     def __init__(self, square_matrix):
         self.square_matrix = square_matrix
@@ -60,6 +63,32 @@ def DFS(game_map, root, goal):
                 stack.append(adj_v)
 
     return []
+
+
+def UCS(game_map, root, goal):
+    graph = GameMap(game_map)
+    cost = {root: 0}
+    path = {root: [root]}
+    priority_queue = [root]
+
+    while len(priority_queue) != 0:
+        current = priority_queue.pop(0)
+
+        for adj_v in graph.get_free_adjacent_vertices(Vertex(None, current)):
+            adj_v = adj_v.coord
+            if adj_v not in cost:
+                cost[adj_v] = math.inf
+
+            if cost[adj_v] > cost[current] + 1:
+                priority_queue.append(adj_v)
+                cost[adj_v] = cost[current] + 1
+                path[adj_v] = path[current].copy()
+                path[adj_v].append(adj_v)
+
+    if goal in path:
+        return path[goal]
+    else:
+        return []
 
 
 def generate_full_path(vertex):
