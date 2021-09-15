@@ -10,13 +10,14 @@ from base import *
 from score import *
 from search import *
 from path_symbol import *
+from profiler import *
 from util import *
 
 random.seed()
 RESTRICTED_TILES = [(12, 5), (12, 6), (12, 7), (11, 5),
                     (11, 6), (11, 7), (10, 6)]
 SPAWN_ENEMY_EVENT = pg.USEREVENT
-MAX_ENEMY_COUNT = 1
+MAX_ENEMY_COUNT = 4
 GAME_STATE_ACTIVE = 0
 GAME_STATE_PLAYER_WON = 1
 GAME_STATE_PLAYER_LOST = 2
@@ -59,7 +60,8 @@ class Game:
         self.player_tank = Tank(10, 6, self)
         self.enemy_count = 10
         self.game_state = GAME_STATE_ACTIVE
-        self.search_algorithm = BFS
+        self.search_algorithm_profiler = Profiler(BFS)
+        self.search_algorithm = self.search_algorithm_profiler.execute
 
         self.game_over_font = pg.font.Font(
             data_dir + "/fonts/ARCADECLASSIC.TTF", 36)
@@ -190,17 +192,27 @@ class Game:
                 self.path_symbol_sprites.add(PathSymbol(square[0], square[1]))
 
     def switch_search_algorithm(self):
-        index = SEARCH_ALGORITHMS.index(self.search_algorithm)
+        index = SEARCH_ALGORITHMS.index(
+            self.search_algorithm_profiler.get_func())
         index = index + 1 if index < len(SEARCH_ALGORITHMS) - 1 else 0
-        self.search_algorithm = SEARCH_ALGORITHMS[index]
+        self.search_algorithm_profiler.set_func(SEARCH_ALGORITHMS[index])
 
     def create_explosion(self, pos):
         self.explosion_sprites.add(Explosion(pos[0], pos[1]))
 
     def print_search_algorithm(self):
         font = pg.font.Font(data_dir + "/fonts/ARCADECLASSIC.TTF", 26)
-        text = font.render(self.search_algorithm.__name__, 1, (34, 34, 34))
-        self.background.blit(text, (480 - text.get_rect().width, 0))
+        font2 = pg.font.Font(data_dir + "/fonts/INVASION2000.TTF", 20)
+
+        algorithm_name = font.render(
+            self.search_algorithm_profiler.get_func_name(), 1, (34, 34, 34))
+        algorithm_duration = font2.render("{:.2f}".format(
+            self.search_algorithm_profiler.get_avg_duration()), 1, (34, 34, 34))
+
+        self.background.blit(
+            algorithm_name, (480 - algorithm_name.get_rect().width, 0))
+        self.background.blit(
+            algorithm_duration, (480 - algorithm_duration.get_rect().width, algorithm_name.get_height()))
 
     def print_win(self):
         self.game_over_text = self.game_over_font.render(
