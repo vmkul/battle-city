@@ -159,21 +159,20 @@ class Game:
 
                 return self.enemy_tank_sprites.add(AITank(i, j, self))
 
-    def get_square_matrix(self):
+    def get_square_matrix(self, omit=[]):
         res = [[0 for x in range(13)] for y in range(13)]
 
         for i in range(13):
             for j in range(13):
                 test_rect = pg.Rect(
                     j * 32 + MAP_COORDINATES[0], i * 32 + MAP_COORDINATES[1], 16, 16)
-                if self.get_wall_collision(test_rect) is None and len(self.get_enemy_tank_collision(test_rect)) >= 0:
+                if (i, j) in omit or (self.get_wall_collision(test_rect) is None and len(self.get_enemy_tank_collision(test_rect)) == 0):
                     res[i][j] = 1
 
         return res
 
     def draw_paths_to_enemies(self):
         self.path_symbol_sprites.empty()
-        m = self.get_square_matrix()
         paths = []
 
         player_center = self.player_tank.rect.center
@@ -184,6 +183,7 @@ class Game:
             center = tank.rect.center
             i = math.floor(center[1] / 32)
             j = math.floor(center[0] / 32)
+            m = self.get_square_matrix([(i, j)])
 
             paths.append(self.search_algorithm(m, player_square, (i, j)))
 
