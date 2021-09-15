@@ -1,5 +1,7 @@
 import os
-import pygame as pg
+import time
+
+MAX_SAMPLE_SIZE = 1000
 
 
 class Profiler():
@@ -12,10 +14,12 @@ class Profiler():
         self.func = func
 
     def execute(self, *args):
-        start = pg.time.get_ticks()
+        if len(self.exec_durations) == MAX_SAMPLE_SIZE:
+            self.exec_durations.pop(0)
+        start = time.perf_counter()
 
         res = self.func(*args)
-        self.exec_durations.append(pg.time.get_ticks() - start)
+        self.exec_durations.append((time.perf_counter() - start) * 1000)
 
         return res
 
