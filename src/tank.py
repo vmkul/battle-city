@@ -93,7 +93,7 @@ class Tank(pg.sprite.Sprite):
 
 class AITank(Tank):
     def __init__(self, x, y, game):
-        Tank.__init__(self, x, y, game, "sprites/enemy_tank.jpg")
+        Tank.__init__(self, x, y, game, "sprites/enemy_tank.bmp")
         self.is_moving = False
         self.last_shot_time = pg.time.get_ticks()
 
