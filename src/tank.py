@@ -23,6 +23,7 @@ class Tank(pg.sprite.Sprite):
         self.is_enemy = isinstance(self, AITank)
         self.is_alive = True
         self.last_shot_time = pg.time.get_ticks()
+        self.lives = 1
 
     def move_right(self):
         self.image = pg.transform.rotate(self.original, -90)
@@ -70,8 +71,10 @@ class Tank(pg.sprite.Sprite):
         return True if self.game.get_base_collision(newpos) is not None else False
 
     def destroy(self):
-        self.is_alive = False
-        self.kill()
+        self.lives = self.lives - 1
+        if self.lives <= 0:
+            self.is_alive = False
+            self.kill()
 
     def shoot(self):
         now = pg.time.get_ticks()
@@ -165,6 +168,7 @@ class PlayerTank(Tank):
         Tank.__init__(self, x, y, game)
         self.is_playing_motor_sound = False
         self.dest_tile = None
+        self.lives = 10
 
     def choose_free_tile(self):
         free_tiles = []
