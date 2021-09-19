@@ -227,6 +227,9 @@ class AITank(Tank):
         path = self.game.generate_path_to_player(self)
         self.traverse_path(path)
 
+        if len(path) == 0:
+            self.shoot()
+
         if self.has_enemy_ahead():
             self.shoot()
 
