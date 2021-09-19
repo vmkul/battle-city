@@ -57,7 +57,7 @@ class Game:
         self.path_symbol_sprites = pg.sprite.RenderPlain()
 
         self.map_coords = []
-        self.player_tank = Tank(10, 6, self)
+        self.player_tank = PlayerTank(10, 6, self)
         self.enemy_count = 10
         self.game_state = GAME_STATE_ACTIVE
         self.search_algorithm_profiler = Profiler(BFS)
@@ -109,7 +109,7 @@ class Game:
             self.enemy_count = self.enemy_count - 1
             self.spawn_enemy()
 
-        self.player_tank = Tank(10, 6, self)
+        self.player_tank = PlayerTank(10, 6, self)
         self.player_tank_sprites.add(self.player_tank)
 
     def get_wall_collision(self, rect):

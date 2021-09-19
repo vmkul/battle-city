@@ -22,8 +22,6 @@ class Tank(pg.sprite.Sprite):
         self.direction = "UP"
         self.is_enemy = isinstance(self, AITank)
         self.is_alive = True
-        self.is_playing_motor_sound = False
-        self.dest_tile = None
         self.last_shot_time = pg.time.get_ticks()
 
     def move_right(self):
@@ -160,6 +158,13 @@ class Tank(pg.sprite.Sprite):
             self.move_left()
         else:
             self.move_right()
+
+
+class PlayerTank(Tank):
+    def __init__(self, x, y, game):
+        Tank.__init__(self, x, y, game)
+        self.is_playing_motor_sound = False
+        self.dest_tile = None
 
     def choose_free_tile(self):
         free_tiles = []
