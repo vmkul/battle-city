@@ -21,7 +21,7 @@ MAX_ENEMY_COUNT = 4
 GAME_STATE_ACTIVE = 0
 GAME_STATE_PLAYER_WON = 1
 GAME_STATE_PLAYER_LOST = 2
-SEARCH_ALGORITHMS = [BFS, DFS, UCS]
+SEARCH_ALGORITHMS = [BFS, DFS, UCS, A_Star]
 
 win_sound = load_sound("samples/win_effect.wav")
 lose_sound = load_sound("samples/lose_effect.wav")
