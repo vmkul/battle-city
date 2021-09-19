@@ -171,21 +171,19 @@ class Game:
 
         return res
 
+    def generate_path_to_player(self, enemy_tank):
+        player = self.player_tank.get_current_tile()
+        enemy_tank_tile = enemy_tank.get_current_tile()
+        m = self.get_square_matrix([enemy_tank_tile])
+
+        return self.search_algorithm(m, player, enemy_tank_tile)
+
     def draw_paths_to_enemies(self):
         self.path_symbol_sprites.empty()
         paths = []
 
-        player_center = self.player_tank.rect.center
-        player_square = (math.floor(
-            player_center[1] / 32), math.floor(player_center[0] / 32))
-
         for tank in self.enemy_tank_sprites:
-            center = tank.rect.center
-            i = math.floor(center[1] / 32)
-            j = math.floor(center[0] / 32)
-            m = self.get_square_matrix([(i, j)])
-
-            paths.append(self.search_algorithm(m, player_square, (i, j)))
+            paths.append(self.generate_path_to_player(tank))
 
         for path in paths:
             for square in path:
