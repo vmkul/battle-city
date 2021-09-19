@@ -1,4 +1,5 @@
 import math
+import functools
 
 
 class GameMap():
@@ -99,3 +100,49 @@ def generate_full_path(vertex):
         vertex = vertex.prev
 
     return res
+
+
+def manhattan_distance(root, goal):
+    return abs(root[0] - goal[0]) + abs(root[1] - goal[1])
+
+
+def reconstruct_path(came_from, current):
+    total_path = [current]
+
+    while True:
+        if current not in came_from:
+            break
+        current = came_from[current]
+        total_path.append(current)
+
+    return total_path
+
+
+def A_Star(game_map, root, goal):
+    graph = GameMap(game_map)
+    open_set = [root]
+    came_from = {}
+    g_score = {root: 0}
+    f_score = {root: 0}
+
+    while len(open_set) > 0:
+        current = functools.reduce(
+            lambda a, b: a if f_score[a] < f_score[b] else b, open_set)
+
+        if current == goal:
+            return reconstruct_path(came_from, current)
+
+        open_set.remove(current)
+
+        for neighbor in graph.get_free_adjacent_vertices(Vertex(None, current)):
+            neighbor = neighbor.coord
+            tentative_g_score = g_score[current] + 1
+            if tentative_g_score < g_score.get(neighbor, math.inf):
+                came_from[neighbor] = current
+                g_score[neighbor] = tentative_g_score
+                f_score[neighbor] = g_score[neighbor] + \
+                    manhattan_distance(neighbor, goal)
+                if neighbor not in open_set:
+                    open_set.append(neighbor)
+
+    return []
