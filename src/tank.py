@@ -191,10 +191,9 @@ class PlayerTank(Tank):
             self.dest_tile = self.choose_free_tile()
 
         path = A_Star(self.game.get_square_matrix(), (i, j), self.dest_tile)
-        path.reverse()
 
         if len(path) == 0:
-            self.shoot()
+            self.dest_tile = None
 
         self.traverse_path(path)
 
@@ -205,6 +204,7 @@ class PlayerTank(Tank):
         newpos = self.rect.move(self.speed)
 
         if self.is_colliding(newpos):
+            self.dest_tile = None
             self.move_to_opposite_direction()
 
         if not self.is_colliding(newpos):
