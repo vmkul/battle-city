@@ -176,7 +176,10 @@ class Game:
         enemy_tank_tile = enemy_tank.get_current_tile()
         m = self.get_square_matrix([enemy_tank_tile])
 
-        return self.search_algorithm(m, player, enemy_tank_tile)
+        res = self.search_algorithm(m, player, enemy_tank_tile)
+        res.reverse()
+
+        return res
 
     def draw_paths_to_enemies(self):
         self.path_symbol_sprites.empty()
