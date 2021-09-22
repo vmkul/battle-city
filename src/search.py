@@ -96,7 +96,7 @@ def generate_full_path(vertex):
     res = []
 
     while vertex is not None:
-        res.append(vertex.coord)
+        res.insert(0, vertex.coord)
         vertex = vertex.prev
 
     return res
@@ -113,7 +113,7 @@ def reconstruct_path(came_from, current):
         if current not in came_from:
             break
         current = came_from[current]
-        total_path.append(current)
+        total_path.insert(0, current)
 
     return total_path
 
