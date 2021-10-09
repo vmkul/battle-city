@@ -17,6 +17,7 @@ random.seed()
 RESTRICTED_TILES = [(12, 5), (12, 6), (12, 7), (11, 5),
                     (11, 6), (11, 7), (10, 6)]
 SPAWN_ENEMY_EVENT = pg.USEREVENT
+ENEMY_COUNT = 10
 MAX_ENEMY_COUNT = 4
 GAME_STATE_ACTIVE = 0
 GAME_STATE_PLAYER_WON = 1
@@ -58,7 +59,7 @@ class Game:
 
         self.map_coords = []
         self.player_tank = PlayerTank(10, 6, self)
-        self.enemy_count = 10
+        self.enemy_count = ENEMY_COUNT
         self.game_state = GAME_STATE_ACTIVE
         self.search_algorithm_profiler = Profiler(BFS)
         self.search_algorithm = self.search_algorithm_profiler.execute
@@ -104,10 +105,11 @@ class Game:
             self.map_coords.remove(coord)
             self.wall_sprites.add(Wall(coord[0], coord[1]))
 
-        self.enemy_count = 10
+        self.enemy_count = ENEMY_COUNT
         for i in range(MAX_ENEMY_COUNT):
-            self.enemy_count = self.enemy_count - 1
-            self.spawn_enemy()
+            if self.enemy_count > 0:
+                self.enemy_count = self.enemy_count - 1
+                self.spawn_enemy()
 
         self.player_tank = PlayerTank(10, 6, self)
         self.player_tank_sprites.add(self.player_tank)
