@@ -12,16 +12,16 @@ class Bullet(pg.sprite.Sprite):
         self.is_enemy = is_enemy
 
         if direction == "UP":
-            self.speed = 0, -4
+            self.speed = 0, -32
             self.image = pg.transform.rotate(self.image, -90)
         elif direction == "DOWN":
             self.image = pg.transform.rotate(self.image, 90)
-            self.speed = 0, 4
+            self.speed = 0, 32
         elif direction == "LEFT":
-            self.speed = -4, 0
+            self.speed = -32, 0
         elif direction == "RIGHT":
             self.image = pg.transform.rotate(self.image, 180)
-            self.speed = 4, 0
+            self.speed = 32, 0
 
     def destroy_tank(self, tank):
         explosion_sound.play()
@@ -29,7 +29,7 @@ class Bullet(pg.sprite.Sprite):
         tank.destroy()
         self.kill()
 
-    def update(self):
+    def move_one_tile(self):
         newpos = self.rect.move(self.speed)
         test_rect = newpos.inflate(-15, -15)
 
@@ -59,3 +59,7 @@ class Bullet(pg.sprite.Sprite):
             base_collision.destroy()
 
         self.rect = newpos
+
+    def update(self):
+        for i in range(2):
+            self.move_one_tile()
