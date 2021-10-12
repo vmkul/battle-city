@@ -17,7 +17,7 @@ random.seed()
 RESTRICTED_TILES = [(12, 5), (12, 6), (12, 7), (11, 5),
                     (11, 6), (11, 7), (10, 6)]
 SPAWN_ENEMY_EVENT = pg.USEREVENT
-ENEMY_COUNT = 10
+ENEMY_COUNT = 4
 MAX_ENEMY_COUNT = 4
 GAME_STATE_ACTIVE = 0
 GAME_STATE_PLAYER_WON = 1
@@ -61,6 +61,7 @@ class Game:
         self.player_tank = PlayerTank(10, 6, self)
         self.enemy_count = ENEMY_COUNT
         self.game_state = GAME_STATE_ACTIVE
+        self.player_move = True
         self.search_algorithm_profiler = Profiler(BFS)
         self.search_algorithm = self.search_algorithm_profiler.execute
 
@@ -75,6 +76,7 @@ class Game:
 
     def restart_game(self):
         self.game_state = GAME_STATE_ACTIVE
+        self.player_move = True
 
         self.bullet_sprites.empty()
         self.base_sprite.empty()
@@ -156,7 +158,8 @@ class Game:
                 test_rect = pg.Rect(
                     j * 32 + MAP_COORDINATES[0], i * 32 + MAP_COORDINATES[1], 32, 32)
 
-                if self.get_wall_collision(test_rect) is not None or len(self.get_enemy_tank_collision(test_rect)) > 0 or self.get_player_tank_collision(test_rect) is not None:
+                if self.get_wall_collision(test_rect) is not None or len(self.get_enemy_tank_collision(
+                        test_rect)) > 0 or self.get_player_tank_collision(test_rect) is not None:
                     continue
 
                 return self.enemy_tank_sprites.add(AITank(i, j, self))
@@ -215,7 +218,9 @@ class Game:
         self.background.blit(
             algorithm_name, (480 - algorithm_name.get_rect().width, 0))
         self.background.blit(
-            algorithm_duration, (480 - algorithm_duration.get_rect().width, algorithm_name.get_height()))
+            algorithm_duration,
+            (480 - algorithm_duration.get_rect().width,
+             algorithm_name.get_height()))
 
     def print_win(self):
         self.game_over_text = self.game_over_font.render(
@@ -227,44 +232,45 @@ class Game:
             "YOU   LOST!", 1, (255, 0, 0))
         self.game_map.blit(self.game_over_text, self.textpos)
 
+    def check_or_update_game_state(self):
+        if self.game_state == GAME_STATE_ACTIVE:
+            if not self.player_tank.is_alive:
+                lose_sound.play()
+                self.game_state = GAME_STATE_PLAYER_LOST
+
+            if self.enemy_count == 0 and len(self.enemy_tank_sprites) == 0:
+                win_sound.play()
+                self.game_state = GAME_STATE_PLAYER_WON
+
+    def update_game_state(self):
+        self.check_or_update_game_state()
+        self.wall_sprites.update()
+        self.bullet_sprites.update()
+        self.base_sprite.update()
+        self.explosion_sprites.update()
+        self.enemy_counter_sprite.sprites()[0].set_count(
+            self.enemy_count + len(self.enemy_tank_sprites))
+        self.enemy_counter_sprite.update()
+        self.path_symbol_sprites.update()
+
+    def toggle_player_move(self):
+        self.player_move = not self.player_move
+
     def main_loop(self):
-        last_shot_time = -1000
         pg.display.flip()
         clock = pg.time.Clock()
         spawn_pending = False
 
         going = True
-        pressed_directions = []
 
         while going:
-            clock.tick(60)
-
             self.draw_paths_to_enemies()
-
-            if self.game_state == GAME_STATE_ACTIVE:
-                if not self.base_sprite.sprites()[0].is_alive or not self.player_tank.is_alive:
-                    lose_sound.play()
-                    self.game_state = GAME_STATE_PLAYER_LOST
-
-                if self.enemy_count == 0 and len(self.enemy_tank_sprites) == 0:
-                    win_sound.play()
-                    self.game_state = GAME_STATE_PLAYER_WON
+            self.check_or_update_game_state()
 
             if len(self.enemy_tank_sprites) < MAX_ENEMY_COUNT and not spawn_pending:
                 pg.time.set_timer(SPAWN_ENEMY_EVENT, 2000)
                 spawn_pending = True
 
-            if len(pressed_directions) > 0:
-                last_pressed = pressed_directions[-1]
-
-                if last_pressed == pg.K_UP:
-                    self.player_tank.move_up()
-                elif last_pressed == pg.K_DOWN:
-                    self.player_tank.move_down()
-                elif last_pressed == pg.K_RIGHT:
-                    self.player_tank.move_right()
-                elif last_pressed == pg.K_LEFT:
-                    self.player_tank.move_left()
             for event in pg.event.get():
                 if event.type == pg.QUIT:
                     going = False
@@ -272,22 +278,6 @@ class Game:
                 elif event.type == pg.KEYDOWN:
                     if event.key == pg.K_z:
                         self.switch_search_algorithm()
-                    if event.key == pg.K_RETURN:
-                        if self.game_state == GAME_STATE_PLAYER_LOST or self.game_state == GAME_STATE_PLAYER_WON:
-                            self.restart_game()
-                    if event.key == pg.K_UP or event.key == pg.K_DOWN or event.key == pg.K_RIGHT or event.key == pg.K_LEFT:
-                        pressed_directions.append(event.key)
-                    if event.key == pg.K_SPACE:
-                        current = pg.time.get_ticks()
-                        if (current - last_shot_time) >= 1000:
-                            last_shot_time = current
-                            self.player_tank.shoot()
-
-                elif event.type == pg.KEYUP:
-                    if event.key in pressed_directions:
-                        pressed_directions.remove(event.key)
-                        if len(pressed_directions) == 0:
-                            self.player_tank.stop()
 
                 elif event.type == SPAWN_ENEMY_EVENT:
                     if self.enemy_count != 0:
@@ -296,16 +286,14 @@ class Game:
                         self.spawn_enemy()
                         spawn_pending = False
 
-            self.enemy_tank_sprites.update()
-            self.player_tank_sprites.update()
-            self.wall_sprites.update()
-            self.bullet_sprites.update()
-            self.base_sprite.update()
-            self.explosion_sprites.update()
-            self.enemy_counter_sprite.sprites()[0].set_count(
-                self.enemy_count + len(self.enemy_tank_sprites))
-            self.enemy_counter_sprite.update()
-            self.path_symbol_sprites.update()
+            if self.player_move:
+                self.player_tank_sprites.update()
+                self.update_game_state()
+                self.toggle_player_move()
+            else:
+                self.enemy_tank_sprites.update()
+                self.update_game_state()
+                self.toggle_player_move()
 
             self.background.fill((128, 128, 128))
             self.game_map.fill((0, 0, 0))
@@ -321,8 +309,10 @@ class Game:
             self.print_search_algorithm()
 
             if self.game_state == GAME_STATE_PLAYER_WON:
+                self.restart_game()
                 self.print_win()
             elif self.game_state == GAME_STATE_PLAYER_LOST:
+                self.restart_game()
                 self.print_lose()
 
             self.background.blit(self.game_map, MAP_COORDINATES)
