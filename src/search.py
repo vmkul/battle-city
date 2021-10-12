@@ -10,6 +10,9 @@ class GameMap():
         i, j = vertex.coord
         res = []
 
+        if i not in range(13) or j not in range(13):
+            return []
+
         if i < 12 and self.square_matrix[i + 1][j] == 1:
             res.append(Vertex(vertex, (i + 1, j)))
         if i > 0 and self.square_matrix[i - 1][j] == 1:
@@ -134,7 +137,8 @@ def A_Star(game_map, root, goal):
 
         open_set.remove(current)
 
-        for neighbor in graph.get_free_adjacent_vertices(Vertex(None, current)):
+        for neighbor in graph.get_free_adjacent_vertices(
+                Vertex(None, current)):
             neighbor = neighbor.coord
             tentative_g_score = g_score[current] + 1
             if tentative_g_score < g_score.get(neighbor, math.inf):
