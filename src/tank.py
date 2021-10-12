@@ -4,11 +4,14 @@ from util import *
 import random
 import math
 from search import A_Star
+from minimax import minimax
 
 motor_sound = load_sound("samples/motor.wav")
 shot_sound = load_sound("samples/gun_shot.wav")
 motor_sound.set_volume(0.5)
 shot_sound.set_volume(0.5)
+
+TANK_SPEED = 32
 
 
 class Tank(pg.sprite.Sprite):
@@ -28,22 +31,22 @@ class Tank(pg.sprite.Sprite):
     def move_right(self):
         self.image = pg.transform.rotate(self.original, -90)
         self.direction = "RIGHT"
-        self.speed = 2, 0
+        self.speed = TANK_SPEED, 0
 
     def move_left(self):
         self.image = pg.transform.rotate(self.original, 90)
         self.direction = "LEFT"
-        self.speed = -2, 0
+        self.speed = -TANK_SPEED, 0
 
     def move_up(self):
         self.image = self.original
         self.direction = "UP"
-        self.speed = 0, -2
+        self.speed = 0, -TANK_SPEED
 
     def move_down(self):
         self.image = pg.transform.rotate(self.original, 180)
         self.direction = "DOWN"
-        self.speed = 0, 2
+        self.speed = 0, TANK_SPEED
 
     def stop(self):
         self.is_playing_motor_sound = False
@@ -52,8 +55,6 @@ class Tank(pg.sprite.Sprite):
 
     def is_colliding(self, newpos, omit_player=False):
         enemy_tank_collisions = self.game.get_enemy_tank_collision(newpos)
-        if self.is_enemy:
-            enemy_tank_collisions.remove(self)
 
         if len(enemy_tank_collisions) > 0:
             return True
@@ -65,10 +66,26 @@ class Tank(pg.sprite.Sprite):
             return True
 
         if self.is_enemy:
-            if self.game.get_player_tank_collision(newpos) is not None and not omit_player:
+            if self.game.get_player_tank_collision(
+                    newpos) is not None and not omit_player:
                 return True
 
-        return True if self.game.get_base_collision(newpos) is not None else False
+        return True if self.game.get_base_collision(
+            newpos) is not None else False
+
+    def get_available_move_directions(self):
+        possible_directions = []
+
+        if not self.is_colliding(self.rect.move((0, -TANK_SPEED))):
+            possible_directions.append(self.move_up)
+        if not self.is_colliding(self.rect.move(0, TANK_SPEED)):
+            possible_directions.append(self.move_down)
+        if not self.is_colliding(self.rect.move(TANK_SPEED, 0)):
+            possible_directions.append(self.move_right)
+        if not self.is_colliding(self.rect.move(-TANK_SPEED, 0)):
+            possible_directions.append(self.move_left)
+
+        return possible_directions
 
     def destroy(self):
         self.lives = self.lives - 1
@@ -78,7 +95,7 @@ class Tank(pg.sprite.Sprite):
 
     def shoot(self):
         now = pg.time.get_ticks()
-        if not self.is_alive or now - self.last_shot_time < 1000:
+        if not self.is_alive:
             return
 
         self.last_shot_time = now
@@ -181,34 +198,22 @@ class PlayerTank(Tank):
 
         return random.choice(free_tiles)
 
+    def move(self):
+        newpos = self.rect.move(self.speed)
+        if not self.is_colliding(newpos):
+            self.rect = newpos
+
     def update(self):
-        if self.has_enemy_ahead():
-            self.shoot()
+        self.shoot()
 
-        i, j = self.get_current_tile()
-
-        if self.dest_tile is None or self.dest_tile == (i, j):
-            self.dest_tile = self.choose_free_tile()
-
-        path = A_Star(self.game.get_square_matrix(), (i, j), self.dest_tile)
-
-        if len(path) == 0:
-            self.dest_tile = None
-
-        self.traverse_path(path)
+        func = minimax(self.game)
+        getattr(self, func.__name__)()
 
         if self.speed != (0, 0) and not self.is_playing_motor_sound:
             self.is_playing_motor_sound = True
             motor_sound.play(loops=-1)
 
-        newpos = self.rect.move(self.speed)
-
-        if self.is_colliding(newpos):
-            self.dest_tile = None
-            self.move_to_opposite_direction()
-
-        if not self.is_colliding(newpos):
-            self.rect = newpos
+        self.move()
 
 
 class AITank(Tank):
@@ -217,16 +222,7 @@ class AITank(Tank):
         self.is_moving = False
 
     def move_to_free_location(self):
-        possible_directions = []
-
-        if not self.is_colliding(self.rect.move((0, -2))):
-            possible_directions.append(self.move_up)
-        if not self.is_colliding(self.rect.move(0, 2)):
-            possible_directions.append(self.move_down)
-        if not self.is_colliding(self.rect.move(2, 0)):
-            possible_directions.append(self.move_right)
-        if not self.is_colliding(self.rect.move(-2, 0)):
-            possible_directions.append(self.move_left)
+        possible_directions = self.get_available_move_directions()
 
         if len(possible_directions) > 0:
             self.is_moving = True
