@@ -1,4 +1,4 @@
-from copy import deepcopy
+from deepcopy import deepcopy
 
 
 TREE_DEPTH = 4
