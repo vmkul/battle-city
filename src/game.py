@@ -18,6 +18,7 @@ RESTRICTED_TILES = [(12, 5), (12, 6), (12, 7), (11, 5),
                     (11, 6), (11, 7), (10, 6)]
 SPAWN_ENEMY_EVENT = pg.USEREVENT
 ENEMY_COUNT = 4
+RANDOM_ENEMY_COUNT = 0
 MAX_ENEMY_COUNT = 4
 GAME_STATE_ACTIVE = 0
 GAME_STATE_PLAYER_WON = 1
@@ -59,7 +60,8 @@ class Game:
 
         self.map_coords = []
         self.player_tank = PlayerTank(10, 6, self)
-        self.enemy_count = ENEMY_COUNT
+        self.enemy_count = ENEMY_COUNT + RANDOM_ENEMY_COUNT
+        self.enemies = []
         self.game_state = GAME_STATE_ACTIVE
         self.player_move = True
         self.search_algorithm_profiler = Profiler(BFS)
@@ -107,7 +109,15 @@ class Game:
             self.map_coords.remove(coord)
             self.wall_sprites.add(Wall(coord[0], coord[1]))
 
-        self.enemy_count = ENEMY_COUNT
+        for i in range(ENEMY_COUNT):
+            self.enemies.append(AITank)
+
+        for i in range(RANDOM_ENEMY_COUNT):
+            self.enemies.append(RandomTank)
+
+        random.shuffle(self.enemies)
+
+        self.enemy_count = ENEMY_COUNT + RANDOM_ENEMY_COUNT
         for i in range(MAX_ENEMY_COUNT):
             if self.enemy_count > 0:
                 self.enemy_count = self.enemy_count - 1
@@ -162,7 +172,7 @@ class Game:
                         test_rect)) > 0 or self.get_player_tank_collision(test_rect) is not None:
                     continue
 
-                return self.enemy_tank_sprites.add(AITank(i, j, self))
+                return self.enemy_tank_sprites.add(self.enemies.pop()(i, j, self))
 
     def get_square_matrix(self, omit=[]):
         res = [[0 for x in range(13)] for y in range(13)]

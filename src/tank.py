@@ -185,7 +185,7 @@ class PlayerTank(Tank):
         Tank.__init__(self, x, y, game)
         self.is_playing_motor_sound = False
         self.dest_tile = None
-        self.lives = 10
+        self.lives = 3
 
     def choose_free_tile(self):
         free_tiles = []
@@ -217,8 +217,8 @@ class PlayerTank(Tank):
 
 
 class AITank(Tank):
-    def __init__(self, x, y, game):
-        Tank.__init__(self, x, y, game, "sprites/enemy_tank.bmp")
+    def __init__(self, x, y, game, sprite="sprites/enemy_tank.bmp"):
+        Tank.__init__(self, x, y, game, sprite)
         self.is_moving = False
 
     def move_to_free_location(self):
@@ -247,3 +247,17 @@ class AITank(Tank):
             self.is_moving = False
         else:
             self.rect = newpos
+
+
+class RandomTank(AITank):
+    def __init__(self, x, y, game):
+        AITank.__init__(self, x, y, game, "sprites/random_tank.bmp")
+
+    def update(self):
+        self.move_to_free_location()
+
+        if self.has_enemy_ahead():
+            self.shoot()
+
+        self.rect = self.rect.move(self.speed)
+        self.stop()
