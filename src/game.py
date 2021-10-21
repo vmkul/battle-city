@@ -271,14 +271,14 @@ class Game:
     def check_or_update_game_state(self):
         if self.game_state == GAME_STATE_ACTIVE:
             if not self.player_tank.is_alive:
-                self.log_game_result()
                 lose_sound.play()
                 self.game_state = GAME_STATE_PLAYER_LOST
+                self.log_game_result()
 
             if self.enemy_count == 0 and len(self.enemy_tank_sprites) == 0:
-                self.log_game_result()
                 win_sound.play()
                 self.game_state = GAME_STATE_PLAYER_WON
+                self.log_game_result()
 
     def update_game_state(self):
         self.check_or_update_game_state()
