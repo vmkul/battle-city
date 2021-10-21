@@ -20,7 +20,7 @@ __all__ = ["Error", "copy", "deepcopy"]
 
 def deepcopy(x, memo=None, _nil=[]):
     if isinstance(x, pg.Surface):
-        return x.copy()
+        return x
 
     if isinstance(x, pg.font.Font):
         return x
