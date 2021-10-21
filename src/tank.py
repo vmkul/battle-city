@@ -4,7 +4,7 @@ from util import *
 import random
 import math
 from search import A_Star
-from minimax import minimax
+from minimax import minimax, expectimax
 
 motor_sound = load_sound("samples/motor.wav")
 shot_sound = load_sound("samples/gun_shot.wav")
@@ -12,6 +12,7 @@ motor_sound.set_volume(0.5)
 shot_sound.set_volume(0.5)
 
 TANK_SPEED = 32
+PLAYER_ALGORITHM = minimax
 
 
 class Tank(pg.sprite.Sprite):
@@ -179,6 +180,15 @@ class Tank(pg.sprite.Sprite):
         else:
             self.move_right()
 
+    def move(self):
+        newpos = self.rect.move(self.speed)
+        if not self.is_colliding(newpos):
+            self.rect = newpos
+
+    def shoot_on_sight(self):
+        if self.has_enemy_ahead():
+            self.shoot()
+
 
 class PlayerTank(Tank):
     def __init__(self, x, y, game):
@@ -198,16 +208,11 @@ class PlayerTank(Tank):
 
         return random.choice(free_tiles)
 
-    def move(self):
-        newpos = self.rect.move(self.speed)
-        if not self.is_colliding(newpos):
-            self.rect = newpos
-
     def update(self):
         self.shoot()
 
-        func = minimax(self.game)
-        getattr(self, func.__name__)()
+        move = PLAYER_ALGORITHM(self.game)
+        getattr(self, move)()
 
         if self.speed != (0, 0) and not self.is_playing_motor_sound:
             self.is_playing_motor_sound = True
@@ -235,8 +240,7 @@ class AITank(Tank):
         if len(path) == 0:
             self.shoot()
 
-        if self.has_enemy_ahead():
-            self.shoot()
+        self.shoot_on_sight()
 
         newpos = self.rect.move(self.speed)
 
@@ -255,9 +259,7 @@ class RandomTank(AITank):
 
     def update(self):
         self.move_to_free_location()
-
-        if self.has_enemy_ahead():
-            self.shoot()
+        self.shoot_on_sight()
 
         self.rect = self.rect.move(self.speed)
         self.stop()
