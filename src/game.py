@@ -186,6 +186,15 @@ class Game:
 
         return res
 
+    def get_random_tank_sprites(self):
+        res = []
+
+        for tank in self.enemy_tank_sprites:
+            if isinstance(tank, RandomTank):
+                res.append(tank)
+
+        return res
+
     def generate_path_to_player(self, enemy_tank):
         player = self.player_tank.get_current_tile()
         enemy_tank_tile = enemy_tank.get_current_tile()
