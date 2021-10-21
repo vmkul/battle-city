@@ -85,9 +85,7 @@ class Node:
                 return self.parent.eval(-1, self.move)
 
         if self.rec > TREE_DEPTH:
-            score = self.game.player_tank.lives * 0.2 - \
-                (self.game.enemy_count + len(self.game.enemy_tank_sprites)) * 0.1
-            return self.parent.eval(score, self.move)
+            return self.parent.eval(self.game.get_score(), self.move)
 
         if self.player == MIN_PLAYER:
             self.min_move()
@@ -140,8 +138,7 @@ class ExpectiNode:
                 return
 
         if self.rec > EXPECTIMAX_DEPTH:
-            self.score = self.game.player_tank.lives * 0.2 - \
-                (self.game.enemy_count + len(self.game.enemy_tank_sprites)) * 0.1
+            self.score = self.game.get_score()
             return
 
         self.max_move()
