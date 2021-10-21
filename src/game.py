@@ -1,6 +1,7 @@
 import os
 import random
 import math
+from datetime import datetime
 import pygame as pg
 from wall import *
 from tank import *
@@ -12,6 +13,8 @@ from search import *
 from path_symbol import *
 from profiler import *
 from util import *
+from logger import Logger
+
 
 random.seed()
 RESTRICTED_TILES = [(12, 5), (12, 6), (12, 7), (11, 5),
@@ -65,6 +68,8 @@ class Game:
         self.game_state = GAME_STATE_ACTIVE
         self.player_move = True
         self.search_algorithm_profiler = Profiler(BFS)
+        self.logger = Logger()
+        self.game_start_time = datetime.now()
         self.search_algorithm = self.search_algorithm_profiler.execute
 
         self.game_over_font = pg.font.Font(
@@ -77,6 +82,7 @@ class Game:
         self.restart_game()
 
     def restart_game(self):
+        self.game_start_time = datetime.now()
         self.game_state = GAME_STATE_ACTIVE
         self.player_move = True
 
@@ -251,13 +257,26 @@ class Game:
             "YOU   LOST!", 1, (255, 0, 0))
         self.game_map.blit(self.game_over_text, self.textpos)
 
+    def get_score(self):
+        return self.player_tank.lives * 0.2 - \
+            (self.enemy_count + len(self.enemy_tank_sprites)) * 0.1
+
+    def log_game_result(self):
+        status = "player_won" if self.game_state == GAME_STATE_PLAYER_WON else "player_lost"
+        duration = (datetime.now() - self.game_start_time).total_seconds()
+
+        self.logger.log_result(status, duration,
+                               self.get_score(), PLAYER_ALGORITHM.__name__)
+
     def check_or_update_game_state(self):
         if self.game_state == GAME_STATE_ACTIVE:
             if not self.player_tank.is_alive:
+                self.log_game_result()
                 lose_sound.play()
                 self.game_state = GAME_STATE_PLAYER_LOST
 
             if self.enemy_count == 0 and len(self.enemy_tank_sprites) == 0:
+                self.log_game_result()
                 win_sound.play()
                 self.game_state = GAME_STATE_PLAYER_WON
 
