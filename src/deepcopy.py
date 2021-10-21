@@ -2,6 +2,7 @@ import types
 import weakref
 from copyreg import dispatch_table
 import pygame as pg
+from logger import Logger, LoggerMock
 
 
 class Error(Exception):
@@ -19,6 +20,9 @@ __all__ = ["Error", "copy", "deepcopy"]
 
 
 def deepcopy(x, memo=None, _nil=[]):
+    if isinstance(x, Logger):
+        return LoggerMock()
+
     if isinstance(x, pg.Surface):
         return x
 
