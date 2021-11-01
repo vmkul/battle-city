@@ -196,6 +196,14 @@ class PlayerTank(Tank):
         self.is_playing_motor_sound = False
         self.dest_tile = None
         self.lives = 3
+        self.move_history = []
+        self.OPPOSITE_MOVES = {
+            self.move_down: self.move_up,
+            self.move_up: self.move_down,
+            self.move_left: self.move_right,
+            self.move_right: self.move_left,
+            self.stop: None,
+        }
 
     def choose_free_tile(self):
         free_tiles = []
@@ -208,11 +216,41 @@ class PlayerTank(Tank):
 
         return random.choice(free_tiles)
 
+
+    def is_cycling(self):
+        if len(self.move_history) < 10:
+            return
+
+        last_pair = (self.move_history[-1], self.move_history[-2])
+        if last_pair[0] != self.OPPOSITE_MOVES[last_pair[1]]:
+            return
+
+        i = 3
+        repeat_count = 0
+        while i < len(self.move_history):
+            pair = (self.move_history[-i], self.move_history[-i - 1])
+            if pair == last_pair:
+                repeat_count = repeat_count + 1
+            i = i + 2
+    
+        if repeat_count >= 5:
+            return True
+        else:
+            return False
+
+
     def update(self):
         self.shoot()
 
         move = PLAYER_ALGORITHM(self.game)
-        getattr(self, move)()
+        move_func = getattr(self, move)
+
+        self.move_history.append(move_func)
+
+        if self.is_cycling():
+            self.stop()
+        else:
+            move_func()
 
         if self.speed != (0, 0) and not self.is_playing_motor_sound:
             self.is_playing_motor_sound = True
