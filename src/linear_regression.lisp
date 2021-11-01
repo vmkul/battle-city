@@ -2,7 +2,7 @@
 (ql:quickload :cl-csv)
 (ql:quickload "parse-float")
 (use-package :parse-float)
-(setq data (cl-csv:read-csv #P"~/Desktop/git/battle-city/logs/data.csv"))
+(setq data (cl-csv:read-csv #P"./logs/data.csv"))
 
 (defun get-col(table col) 
   (setf res `())
