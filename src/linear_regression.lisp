@@ -14,13 +14,13 @@
   )
 )
 
-(defun avg (x)
-  (defun sumup (x)
-    (if (equal x nil) 0
-      (+ (car x) (sumup (cdr x)))
-    )
+(defun sumup (x)
+  (if (equal x nil) 0
+    (+ (car x) (sumup (cdr x)))
   )
+)
 
+(defun avg (x)
   (if 
     (equal x nil) 0
     (/ (sumup x) (list-length x))
@@ -104,8 +104,26 @@
   )
 )
 
+(defun variance(values)
+  (let*
+    (
+      (avg-value (avg values))
+      (sum-squares
+        (reduce
+          #'(lambda (acc x) (+ acc (expt (- x avg-value) 2)))
+          values
+          :initial-value 0
+        )
+      )
+    )
+    (/ sum-squares (- (length values) 1))
+  )
+)
 
 (setq durs (linear-regression (get-col data 1) "Game Duration"))
 (setq scores (linear-regression (get-col data 2) "Game Score"))
+(format T "Expected time value: ~d" (avg (get-col data 1)))
+(terpri)
+(format T "Game score variance: ~d" (variance (get-col data 2)))
 
 (write-csv durs scores)
