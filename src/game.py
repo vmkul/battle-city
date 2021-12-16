@@ -14,13 +14,16 @@ from path_symbol import *
 from profiler import *
 from util import *
 from logger import Logger
+from minimax import minimax, expectimax
+import numpy as np
+import time
 
 
 random.seed()
 RESTRICTED_TILES = [(12, 5), (12, 6), (12, 7), (11, 5),
                     (11, 6), (11, 7), (10, 6)]
 SPAWN_ENEMY_EVENT = pg.USEREVENT
-ENEMY_COUNT = 4
+ENEMY_COUNT = 1
 RANDOM_ENEMY_COUNT = 0
 MAX_ENEMY_COUNT = 4
 GAME_STATE_ACTIVE = 0
@@ -33,19 +36,28 @@ lose_sound = load_sound("samples/lose_effect.wav")
 
 
 class Game:
-    def __init__(self):
+    def __init__(self, graphical_mode=True, player_algorithm=minimax):
         pg.init()
-        screen = pg.display.set_mode((480, 426), flags=pg.SCALED)
+        self.graphical_mode = graphical_mode
+
+        screen = pg.Surface((480, 426))
+        if graphical_mode:
+            screen = pg.display.set_mode((480, 426), flags=pg.SCALED)
+
         self.screen = screen
         pg.display.set_caption("Battle City")
 
         background = pg.Surface(screen.get_size())
-        background = background.convert()
+    
+        if graphical_mode:
+            background = background.convert()
+
         background.fill((128, 128, 128))
         self.background = background
 
         self.game_map = pg.Surface((416, 416))
-        self.game_map = self.game_map.convert()
+        if graphical_mode:
+            self.game_map = self.game_map.convert()
         self.game_map.fill((0, 0, 0))
         self.game_map_rect = self.game_map.get_rect()
 
@@ -62,7 +74,8 @@ class Game:
         self.path_symbol_sprites = pg.sprite.RenderPlain()
 
         self.map_coords = []
-        self.player_tank = PlayerTank(10, 6, self)
+        self.player_tank = PlayerTank(10, 6, self, player_algorithm)
+        self.player_algorithm = player_algorithm
         self.enemy_count = ENEMY_COUNT + RANDOM_ENEMY_COUNT
         self.enemies = []
         self.game_state = GAME_STATE_ACTIVE
@@ -129,7 +142,7 @@ class Game:
                 self.enemy_count = self.enemy_count - 1
                 self.spawn_enemy()
 
-        self.player_tank = PlayerTank(10, 6, self)
+        self.player_tank = PlayerTank(10, 6, self, self.player_algorithm)
         self.player_tank_sprites.add(self.player_tank)
 
     def get_wall_collision(self, rect):
@@ -266,7 +279,7 @@ class Game:
         duration = (datetime.now() - self.game_start_time).total_seconds()
 
         self.logger.log_result(status, duration,
-                               self.get_score(), PLAYER_ALGORITHM.__name__)
+                               self.get_score(), self.player_algorithm.__name__)
 
     def check_or_update_game_state(self):
         if self.game_state == GAME_STATE_ACTIVE:
@@ -286,16 +299,54 @@ class Game:
         self.bullet_sprites.update()
         self.base_sprite.update()
         self.explosion_sprites.update()
-        self.enemy_counter_sprite.sprites()[0].set_count(
-            self.enemy_count + len(self.enemy_tank_sprites))
+        self.enemy_counter_sprite.sprites()[0].set_count(self.player_tank.lives)
         self.enemy_counter_sprite.update()
         self.path_symbol_sprites.update()
 
+    def update_game_map(self):
+        self.game_map.fill((0, 0, 0))
+        self.path_symbol_sprites.draw(self.game_map)
+        self.wall_sprites.draw(self.game_map)
+        self.bullet_sprites.draw(self.game_map)
+        self.enemy_tank_sprites.draw(self.game_map)
+        self.player_tank_sprites.draw(self.game_map)
+        self.base_sprite.draw(self.game_map)
+        self.explosion_sprites.draw(self.game_map)
+
     def toggle_player_move(self):
         self.player_move = not self.player_move
+    
+    def render_map(self):
+        arr = np.array(self.game_map.get_buffer())
+        arr = np.reshape(arr, (416, 416, 4))
+        arr = arr[:, :, 0:3]
+
+        return arr
+
+    def step(self, move):
+        possible_moves = [
+            self.player_tank.move_up,
+            self.player_tank.move_down,
+            self.player_tank.move_left,
+            self.player_tank.move_right,
+            self.player_tank.stop]
+
+        self.player_tank.shoot()
+        possible_moves[move]()
+        self.player_tank.move()
+        self.update_game_state()
+
+        self.enemy_tank_sprites.update()
+        self.update_game_state()
+        self.update_game_map()
+
+        return (self.get_score(), self.game_state != GAME_STATE_ACTIVE)
+
+        
 
     def main_loop(self):
-        pg.display.flip()
+        if self.graphical_mode:
+            pg.display.flip()
         clock = pg.time.Clock()
         spawn_pending = False
 
@@ -334,15 +385,8 @@ class Game:
                 self.toggle_player_move()
 
             self.background.fill((128, 128, 128))
-            self.game_map.fill((0, 0, 0))
 
-            self.path_symbol_sprites.draw(self.game_map)
-            self.wall_sprites.draw(self.game_map)
-            self.bullet_sprites.draw(self.game_map)
-            self.enemy_tank_sprites.draw(self.game_map)
-            self.player_tank_sprites.draw(self.game_map)
-            self.base_sprite.draw(self.game_map)
-            self.explosion_sprites.draw(self.game_map)
+            self.update_game_map()
             self.enemy_counter_sprite.draw(self.background)
             self.print_search_algorithm()
 
@@ -356,7 +400,9 @@ class Game:
             self.background.blit(self.game_map, MAP_COORDINATES)
             self.screen.blit(self.background, (0, 0))
 
-            pg.display.flip()
+            if self.graphical_mode:
+                pg.display.flip()
+            time.sleep(1)
 
         pg.quit()
 
