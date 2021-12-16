@@ -4,7 +4,6 @@ from util import *
 import random
 import math
 from search import A_Star
-from minimax import minimax, expectimax
 
 motor_sound = load_sound("samples/motor.wav")
 shot_sound = load_sound("samples/gun_shot.wav")
@@ -12,7 +11,6 @@ motor_sound.set_volume(0.5)
 shot_sound.set_volume(0.5)
 
 TANK_SPEED = 32
-PLAYER_ALGORITHM = minimax
 
 
 class Tank(pg.sprite.Sprite):
@@ -191,12 +189,13 @@ class Tank(pg.sprite.Sprite):
 
 
 class PlayerTank(Tank):
-    def __init__(self, x, y, game):
+    def __init__(self, x, y, game, player_algorithm):
         Tank.__init__(self, x, y, game)
         self.is_playing_motor_sound = False
         self.dest_tile = None
         self.lives = 3
         self.move_history = []
+        self.player_algorithm = player_algorithm
         self.OPPOSITE_MOVES = {
             self.move_down: self.move_up,
             self.move_up: self.move_down,
@@ -242,7 +241,7 @@ class PlayerTank(Tank):
     def update(self):
         self.shoot()
 
-        move = PLAYER_ALGORITHM(self.game)
+        move = self.player_algorithm(self.game)
         move_func = getattr(self, move)
 
         self.move_history.append(move_func)
